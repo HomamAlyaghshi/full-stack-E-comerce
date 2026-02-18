@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Product } from './product.model';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
 
 @Injectable()
 export class ProductsService {
@@ -19,16 +20,24 @@ export class ProductsService {
   }
 
   findAll() {
-    return this.productModel.findAll();
-  }
+  return this.productModel.findAll({ order: [['id', 'DESC']] });
+}
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
-  }
+  async findOne(id: number) {
+  const product = await this.productModel.findByPk(id);
+  if (!product) throw new NotFoundException('Product not found');
+  return product;
+}
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
-  }
+
+async update(id: number, updateProductDto: UpdateProductDto) {
+  const product = await this.findOne(id); 
+  return product.update({
+    ...(updateProductDto.name !== undefined ? { name: updateProductDto.name } : {}),
+    ...(updateProductDto.price !== undefined ? { price: updateProductDto.price } : {}),
+  });
+}
+
 
   async remove(id: number) {
     const deletedCount = await this.productModel.destroy({ where: { id } });
